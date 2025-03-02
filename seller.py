@@ -10,36 +10,51 @@ def seller_view():
 
     # Tambah Menu
     st.subheader("➕ Tambah Menu")
+    product_code = st.text_input("Kode Produk")
     name = st.text_input("Nama Menu")
-    price = st.number_input("Harga", min_value=0.0, format="%.2f")
-    available = st.checkbox("Tersedia", value=True)
-
+    price = st.number_input("Harga", min_value=0, format="%d")
+    category = st.selectbox("Kategori", ["food", "drink", "snack"])
+    available = st.selectbox("Ketersediaan", ["available", "not available"])
+    
     if st.button("Tambahkan"):
-        if name and price:
-            cursor.execute("INSERT INTO menu (name, price, available) VALUES (%s, %s, %s)", (name, price, available))
+        if product_code and name and price:
+            cursor.callproc("AddMenu", (product_code, name, price, category, available))
             conn.commit()
-            st.success("Menu berhasil ditambahkan!")
+            st.success("✅ Menu berhasil ditambahkan!")
         else:
-            st.warning("Harap isi semua field!")
+            st.warning("⚠️ Harap isi semua field!")
 
     # Hapus Menu
-    st.subheader("❌ Hapus Menu")
-    cursor.execute("SELECT * FROM menu")
+    # st.subheader("❌ Hapus Menu")
+    cursor.execute("SELECT productCode, productName FROM menu")
     menu_items = cursor.fetchall()
     menu_df = pd.DataFrame(menu_items)
 
-    if not menu_df.empty:
-        delete_id = st.selectbox("Pilih menu yang akan dihapus", menu_df["id"].tolist())
-        if st.button("Hapus"):
-            cursor.execute("DELETE FROM menu WHERE id=%s", (delete_id,))
-            conn.commit()
-            st.success("Menu berhasil dihapus!")
+    # if not menu_df.empty:
+    #     delete_code = st.selectbox("Pilih menu yang akan dihapus", menu_df["productCode"].tolist())
+    #     if st.button("Hapus"):
+    #         cursor.callproc("DeleteMenu", (delete_code,))
+    #         conn.commit()
+    #         st.success("✅ Menu berhasil dihapus!")
+
+    # Update Ketersediaan Menu
+    st.subheader("🔄 Update Ketersediaan Menu")
+    update_code = st.selectbox("Pilih menu yang akan diperbarui", menu_df["productCode"].tolist())
+    new_availability = st.selectbox("Status Ketersediaan", ["available", "not available"])
+    if st.button("Update Ketersediaan"):
+        cursor.callproc("UpdateMenuAvailability", (update_code, new_availability))
+        conn.commit()
+        st.success("✅ Ketersediaan menu berhasil diperbarui!")
 
     # Lihat Pendapatan
     st.subheader("💰 Total Pendapatan")
-    cursor.execute("SELECT SUM(o.quantity * m.price) AS revenue FROM order_details o JOIN menu m ON o.menu_id = m.id")
-    revenue = cursor.fetchone()["revenue"] or 0
-    st.metric("Total Pendapatan", f"Rp {revenue:.2f}")
+    start_date = st.date_input("Dari Tanggal")
+    end_date = st.date_input("Sampai Tanggal")
+    
+    if st.button("Cek Pendapatan"):
+        cursor.callproc("GetIncomeInRange", (start_date, end_date))
+        income = cursor.fetchone()["totalIncome"] or 0
+        st.metric("Total Pendapatan", f"Rp {income:,.2f}")
 
     cursor.close()
     conn.close()
