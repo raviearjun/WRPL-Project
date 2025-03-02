@@ -10,7 +10,21 @@ def seller_view():
 
     # Tampilkan antrean pesanan dari customer
     st.subheader("📋 Antrean Pesanan")
-    queue_df = pd.read_sql("SELECT * FROM order_details WHERE queue_status='waiting' ORDER BY orderNumber ASC", conn)
+    query = """
+        SELECT 
+                od.orderNumber, 
+                o.tableNumber,
+                m.productName,
+                od.quantityOrdered,
+                od.queue_status
+        FROM order_details od
+        JOIN orders o ON od.orderNumber = o.orderNumber
+        JOIN menu m ON od.productCode = m.productCode
+        WHERE od.queue_status = 'waiting'
+        ORDER BY od.orderNumber ASC;
+        """
+    queue_df = pd.read_sql(query, conn)
+
     if not queue_df.empty:
         st.dataframe(queue_df)
     else:
