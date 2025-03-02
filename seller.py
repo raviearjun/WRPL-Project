@@ -8,6 +8,22 @@ def seller_view():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
+    # Tampilkan antrean pesanan dari customer
+    st.subheader("📋 Antrean Pesanan")
+    queue_df = pd.read_sql("SELECT * FROM order_details WHERE queue_status='waiting' ORDER BY orderNumber ASC", conn)
+    if not queue_df.empty:
+        st.dataframe(queue_df)
+    else:
+        st.info("Tidak ada pesanan yang sedang menunggu.")
+
+    # Konfirmasi pesanan yang sudah selesai
+    st.subheader("✅ Konfirmasi Pesanan")
+    confirmed_order_id = st.number_input("Masukkan Nomor Pesanan", min_value=1)
+    if st.button("Konfirmasi"):
+        cursor.callproc("UpdateQueueStatus", (confirmed_order_id,))
+        conn.commit()
+        st.success("✅ Pesanan berhasil dikonfirmasi!")
+
     # Tambah Menu
     st.subheader("➕ Tambah Menu")
     product_code = st.text_input("Kode Produk")
@@ -55,6 +71,8 @@ def seller_view():
         cursor.callproc("GetIncomeInRange", (start_date, end_date))
         income = cursor.fetchone()["totalIncome"] or 0
         st.metric("Total Pendapatan", f"Rp {income:,.2f}")
+
+
 
     cursor.close()
     conn.close()

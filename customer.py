@@ -55,9 +55,10 @@ def customer_view():
 
                 # Masukkan setiap item ke tabel order_details
                 for item_id, qty in quantities.items():
+                    price_each = int(df[df["productCode"] == item_id]["price"].values[0])
                     cursor.execute(
-                        "INSERT INTO order_details (orderNumber, productCode, quantityOrdered) VALUES (%s, %s, %s)", 
-                        (orderNumber, item_id, qty)
+                        "INSERT INTO order_details (orderNumber, productCode, priceEach, quantityOrdered) VALUES (%s, %s, %s, %s)", 
+                        (orderNumber, item_id, price_each, qty)
                     )
 
                 # Update totalAmount di tabel orders
